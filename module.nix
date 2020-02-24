@@ -15,7 +15,7 @@ let
 
   zt-networks = lib.mapAttrsToList (_: v: v) cfg.networks;
 
-  zt-dnscrypt-port = cfg.port + 1000;
+  zt-dnscrypt-port = cfg.dnscryptPort;
 
   network-string = lib.concatStringsSep " " (lib.mapAttrsToList (z: n: "${z}:${n}") cfg.networks);
 
@@ -39,9 +39,11 @@ let
     # as well.
     zt-dnscrypt =
       let
-        dnscrypt-config = pkgs.runCommand "dnscrypt-proxy.toml" {} ''
+        dnscrypt-config = if cfg.dnscryptConfig != null
+        then cfg.dnscryptConfig
+        else pkgs.runCommand "dnscrypt-proxy.toml" {} ''
           substitute ${./dnscrypt-proxy.toml.in} $out \
-            --subst-var-by PORT '${toString zt-dnscrypt-port}' \
+          --subst-var-by PORT '${toString zt-dnscrypt-port}' \
         '';
       in {
         description = "dnscrypt-proxy2 service backend for CoreDNS";
@@ -159,8 +161,21 @@ in
     port = mkOption {
       type        = types.int;
       default     = 53;
-      example     = 1053;
+      example     = 53;
       description = "Port for DNS requests";
+    };
+
+    dnscryptPort = mkOption {
+      type        = types.int;
+      default     = 1053;
+      example     = 1053;
+      description = "Port for dnscrypt";
+    };
+
+    dnscryptConfig = mkOption {
+      type        = types.path;
+      default     = null;
+      description = "Path to dnscrypt-config.toml. If null the default template will be used.";
     };
 
     networks = mkOption {
